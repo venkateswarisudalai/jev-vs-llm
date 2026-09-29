@@ -28,7 +28,7 @@
   .lede { color: var(--muted); margin: 0 0 24px; max-width: 70ch; }
   .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px; }
   label { display: block; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 6px; }
-  textarea, select { width: 100%; font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
+  textarea, select, input { width: 100%; font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
   textarea { font-family: 'JetBrains Mono', monospace; font-size: 13px; resize: vertical; }
   .row { display: grid; grid-template-columns: 2fr 1.3fr .7fr auto; gap: 12px; align-items: end; margin-top: 14px; }
   button { font: inherit; font-weight: 600; border: 0; border-radius: 8px; padding: 10px 20px; background: var(--ink); color: var(--panel); cursor: pointer; }
@@ -90,6 +90,12 @@
       <label for="state">Input (state)</label>
       <textarea id="state" rows="4"></textarea>
     </div>
+    <details class="q" id="keybox">
+      <summary>Use your own AI Gateway key (optional)</summary>
+      <input id="key" type="password" autocomplete="off" placeholder="vck_..." style="margin-top:8px" />
+      <div class="note">Get one free at vercel.com → AI Gateway → API Keys. It's kept in this tab only and sent
+        with each request to be forwarded to Vercel. The server never stores or logs it.</div>
+    </details>
     <details class="q">
       <summary>Questions (editable JSON)</summary>
       <textarea id="questions" rows="14" style="margin-top:8px"></textarea>
@@ -213,6 +219,9 @@ function banner(r) {
   return parts.join(', ') + (parts.length ? '.' : '');
 }
 
+try { $('key').value = sessionStorage.getItem('gatewayKey') ?? ''; } catch {}
+$('key').oninput = () => { try { sessionStorage.setItem('gatewayKey', $('key').value.trim()); } catch {} };
+
 $('go').onclick = async () => {
   let questions;
   try { questions = JSON.parse($('questions').value); }
@@ -222,7 +231,8 @@ $('go').onclick = async () => {
   $('banner').textContent = ''; $('results').innerHTML = '';
   try {
     const res = await fetch('/api/compare', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...($('key').value.trim() && { 'x-gateway-key': $('key').value.trim() }) },
       body: JSON.stringify({ state: readState(), questions, llmModel: $('model').value, runs }),
     });
     const data = await res.json();

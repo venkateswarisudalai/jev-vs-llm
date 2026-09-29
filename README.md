@@ -25,13 +25,42 @@ Both models go through [Vercel AI Gateway](https://vercel.com/docs/ai-gateway) w
 No dependencies and no build step. `index.html` is the whole UI; `api/compare.js` is the one
 serverless function.
 
-## Run locally
+## Try it yourself
 
-```bash
-cp .env.example .env        # add your AI_GATEWAY_API_KEY
-npm run dev                 # http://localhost:3000
-npm test
-```
+You need Node 20+ and a Vercel AI Gateway key. There's nothing to `npm install`.
+
+1. **Get a key.** Sign in at [vercel.com](https://vercel.com), open **AI Gateway → API Keys**, and
+   create one (it starts with `vck_`). Vercel includes some free credits, and one key covers both Jev
+   and every LLM in the dropdown. A 5-run comparison costs well under a cent.
+2. **Clone and add the key:**
+   ```bash
+   git clone https://github.com/venkateswarisudalai/jev-vs-llm.git
+   cd jev-vs-llm
+   cp .env.example .env
+   # open .env and paste your key after AI_GATEWAY_API_KEY=
+   ```
+3. **Run it:**
+   ```bash
+   npm run dev                 # open http://localhost:3000
+   ```
+4. **Play:** pick a scenario, pick an LLM, choose 5 runs, and click **Run both**. Then change the
+   input text, or open **Questions** and write your own. Each question is one of:
+   ```json
+   {
+     "urgent":     { "type": "noul",   "instructions": "Does this need a reply today?" },
+     "team":       { "type": "choice", "instructions": "Who handles it?",
+                     "criteria": { "billing": "Charges and refunds", "tech": "Bugs and outages" } },
+     "anger":      { "type": "score",  "instructions": "How upset is the customer?",
+                     "criteria": ["Calm", "Annoyed", "Furious"] }
+   }
+   ```
+   `noul` is a yes/no probability, `choice` picks one key, and `score` rates on an ordered scale.
+
+No clone? On the hosted demo, open **Use your own AI Gateway key**, paste your key, and it runs on
+your credits instead of the shared key. The key stays in that browser tab and the server only
+forwards it to Vercel.
+
+Run the tests with `npm test`.
 
 ## Deploy
 

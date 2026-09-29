@@ -20,11 +20,17 @@ const json = (body, status = 200) =>
   });
 
 export async function POST(request) {
-  const apiKey = process.env.AI_GATEWAY_API_KEY ?? process.env.VERCEL_OIDC_TOKEN;
-  if (!apiKey) return json({ error: 'server is missing AI_GATEWAY_API_KEY' }, 500);
+  // Visitors may bring their own gateway key; it is forwarded to Vercel and never stored or logged.
+  const visitorKey = request.headers.get('x-gateway-key')?.trim();
+  const apiKey = visitorKey || process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN;
+  if (!apiKey) {
+    return json({ error: 'no API key: add AI_GATEWAY_API_KEY to .env, or paste your own key above' }, 500);
+  }
 
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() ?? 'local';
-  if (rateLimited(ip)) return json({ error: 'rate limit hit, try again in a few minutes' }, 429);
+  if (!visitorKey && rateLimited(ip)) {
+    return json({ error: 'rate limit hit on the shared key; try again later or use your own key' }, 429);
+  }
 
   const body = await request.json().catch(() => null);
   const problem = validateRequest(body);
