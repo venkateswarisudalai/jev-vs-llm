@@ -1,5 +1,7 @@
 # Jev vs LLM
 
+**Live demo: https://jev-vs-llm.vercel.app**
+
 A small side-by-side demo. Send the same input and typed questions to
 [Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) (TypeSafe AI's System One
 decision model) and to a general-purpose LLM. Then compare what production code cares about:
