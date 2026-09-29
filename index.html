@@ -4,247 +4,256 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Jev vs LLM</title>
-<meta name="description" content="Send the same input and typed questions to TypeSafe's Jev and a general LLM. Compare latency, cost, schema validity and consistency side by side." />
+<meta name="description" content="Two kinds of AI: Jev sorts things into boxes, an LLM writes new words. Try each one on the job it's best at." />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
 <style>
   :root {
-    --bg: #f7f7f5; --panel: #ffffff; --ink: #16181d; --muted: #646a76; --line: #e3e3de;
-    --jev: #0f7b5f; --jev-soft: #e3f3ed; --llm: #9a4b12; --llm-soft: #f8ebe0;
-    --bad: #b42318; --bad-soft: #fdecea; --bar: #e9e9e4;
+    --bg: #faf8f4; --panel: #ffffff; --ink: #1c1b19; --muted: #6f6b63; --line: #ebe7df;
+    --jev: #0e7a5f; --jev-soft: #e6f4ee; --llm: #b3561a; --llm-soft: #fbeee4;
+    --bad: #b42318; --bar: #efece6; --shadow: 0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.04);
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --bg: #111316; --panel: #191c20; --ink: #eceef1; --muted: #9aa1ad; --line: #2a2e35;
-      --jev: #4cc9a0; --jev-soft: #16302a; --llm: #f0a060; --llm-soft: #33241a;
-      --bad: #ff8a80; --bad-soft: #3a1f1d; --bar: #2a2e35;
+      --bg: #121210; --panel: #1b1a17; --ink: #efece6; --muted: #a39e94; --line: #2c2a26;
+      --jev: #52c9a2; --jev-soft: #17302a; --llm: #f0a066; --llm-soft: #35251a;
+      --bad: #ff8a80; --bar: #2c2a26; --shadow: none;
     }
   }
+  :root[data-theme="dark"] {
+    --bg: #121210; --panel: #1b1a17; --ink: #efece6; --muted: #a39e94; --line: #2c2a26;
+    --jev: #52c9a2; --jev-soft: #17302a; --llm: #f0a066; --llm-soft: #35251a;
+    --bad: #ff8a80; --bar: #2c2a26; --shadow: none;
+  }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 Inter, system-ui, sans-serif; }
-  main { max-width: 1080px; margin: 0 auto; padding: 32px 16px 64px; }
-  h1 { font-size: 30px; margin: 0 0 6px; letter-spacing: -0.02em; }
-  h1 .j { color: var(--jev); } h1 .l { color: var(--llm); }
-  .lede { color: var(--muted); margin: 0 0 24px; max-width: 70ch; }
-  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px; }
-  label { display: block; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 6px; }
-  textarea, select, input { width: 100%; font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
-  textarea { font-family: 'JetBrains Mono', monospace; font-size: 13px; resize: vertical; }
-  .row { display: grid; grid-template-columns: 2fr 1.3fr .7fr auto; gap: 12px; align-items: end; margin-top: 14px; }
-  button { font: inherit; font-weight: 600; border: 0; border-radius: 8px; padding: 10px 20px; background: var(--ink); color: var(--panel); cursor: pointer; }
-  button:disabled { opacity: .5; cursor: wait; }
-  details.q { margin-top: 12px; } details.q summary { cursor: pointer; color: var(--muted); font-size: 13px; }
-  .banner { margin: 24px 0 12px; font-size: 18px; font-weight: 600; min-height: 27px; }
-  .banner .err { color: var(--bad); font-weight: 500; font-size: 15px; }
-  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
-  .card h2 { margin: 0; padding: 12px 16px; font-size: 15px; display: flex; justify-content: space-between; gap: 8px; }
-  .card.jev h2 { background: var(--jev-soft); color: var(--jev); }
-  .card.llm h2 { background: var(--llm-soft); color: var(--llm); }
-  .card h2 small { font-family: 'JetBrains Mono', monospace; font-weight: 400; font-size: 12px; opacity: .8; }
-  .stats { display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 1px solid var(--line); }
-  .stat { padding: 10px 12px; border-right: 1px solid var(--line); }
-  .stat:last-child { border-right: 0; }
-  .stat b { display: block; font-size: 18px; font-variant-numeric: tabular-nums; }
-  .stat span { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
-  .stat.bad b { color: var(--bad); }
-  .answers { padding: 8px 16px 16px; }
-  .ans { padding: 10px 0; border-bottom: 1px dashed var(--line); }
-  .ans:last-child { border-bottom: 0; }
-  .ans .id { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--muted); }
-  .ans .val { font-weight: 600; }
-  .ans .val.bad { color: var(--bad); }
-  .bars { margin-top: 6px; display: grid; gap: 3px; }
-  .bar { display: grid; grid-template-columns: 110px 1fr 42px; gap: 8px; align-items: center; font-size: 12px; }
-  .bar .track { height: 8px; background: var(--bar); border-radius: 4px; overflow: hidden; }
-  .bar .fill { height: 100%; background: var(--jev); }
-  .bar .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .bar .pct { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
-  .note { font-size: 12px; color: var(--muted); margin-top: 4px; }
-  .errs { margin: 0 16px 12px; padding: 8px 12px; background: var(--bad-soft); color: var(--bad); border-radius: 8px; font-size: 13px; }
-  pre { margin: 0 16px 16px; padding: 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; font: 12px/1.45 'JetBrains Mono', monospace; white-space: pre-wrap; word-break: break-word; max-height: 220px; overflow: auto; }
-  details.raw summary { padding: 0 16px 10px; cursor: pointer; font-size: 13px; color: var(--muted); }
-  footer { margin-top: 32px; font-size: 13px; color: var(--muted); }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.6 Inter, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  main { max-width: 880px; margin: 0 auto; padding: 56px 16px 72px; }
+  .serif { font-family: Fraunces, Georgia, serif; font-weight: 500; letter-spacing: -0.01em; }
+  .j { color: var(--jev); } .l { color: var(--llm); }
+
+  header { text-align: center; margin-bottom: 40px; }
+  h1 { font-size: clamp(38px, 7vw, 56px); line-height: 1.1; margin: 0 0 10px; }
+  .sub { color: var(--muted); font-size: 20px; margin: 0; }
+
+  .who { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 64px; }
+  .who > div { background: var(--panel); border: 1px solid var(--line); border-radius: 20px; padding: 24px; box-shadow: var(--shadow); }
+  .who .big { font-size: 40px; line-height: 1; }
+  .who h2 { font-size: 26px; margin: 12px 0 6px; }
+  .who p { margin: 0; color: var(--muted); }
+
+  .job { margin-bottom: 64px; }
+  .job h2 { font-size: 30px; margin: 0 0 4px; }
+  .job .what { color: var(--muted); margin: 0 0 18px; }
+  .boxes { display: inline-flex; gap: 6px; flex-wrap: wrap; vertical-align: middle; }
+  .boxes span { background: var(--panel); border: 1px solid var(--line); border-radius: 99px; padding: 1px 10px; font-size: 15px; color: var(--ink); }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .chip { font: inherit; font-size: 15px; color: var(--ink); background: var(--panel); border: 1.5px solid var(--line); border-radius: 99px; padding: 7px 14px; cursor: pointer; }
+  .chip[aria-pressed="true"] { border-color: var(--ink); }
+  .ask { display: flex; gap: 10px; }
+  .ask input { flex: 1; min-width: 0; font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
+  .go { font: 600 17px Inter, sans-serif; border: 0; border-radius: 14px; padding: 14px 24px; background: var(--ink); color: var(--bg); cursor: pointer; white-space: nowrap; }
+  .go:disabled { opacity: .55; cursor: wait; }
+
+  .result { margin-top: 20px; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 18px 20px; box-shadow: var(--shadow); }
+  .card .name { font-size: 14px; font-weight: 600; display: flex; justify-content: space-between; }
+  .card.jev .name { color: var(--jev); } .card.llm .name { color: var(--llm); }
+  .card .name span { font-weight: 400; color: var(--muted); }
+  .card .answer { font-size: 30px; margin: 6px 0 4px; }
+  .card .text { font-size: 17px; margin: 10px 0 6px; white-space: pre-wrap; }
+  .card .note { font-size: 14px; color: var(--muted); }
+  .card.cant { background: var(--bg); box-shadow: none; border-style: dashed; }
+  .card.cant .answer { font-size: 22px; }
+  .bars { display: grid; gap: 5px; margin: 10px 0 8px; }
+  .bar { display: grid; grid-template-columns: 78px 1fr 40px; gap: 10px; align-items: center; font-size: 14px; }
+  .bar .t { height: 10px; background: var(--bar); border-radius: 5px; overflow: hidden; }
+  .bar .t i { display: block; height: 100%; background: var(--jev); border-radius: 5px; }
+  .bar .p { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .takeaway { text-align: center; font-size: clamp(20px, 3vw, 24px); margin: 18px auto 0; max-width: 32ch; line-height: 1.35; }
+  .error { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--bad); border-radius: 12px; padding: 14px 16px; font-size: 15px; }
+  .error a { color: var(--ink); }
+  .loading { color: var(--muted); text-align: center; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); margin: 0 3px; animation: b 1s infinite ease-in-out; }
+  .dot:nth-child(2) { animation-delay: .15s; } .dot:nth-child(3) { animation-delay: .3s; }
+  @keyframes b { 0%, 80%, 100% { opacity: .2; } 40% { opacity: 1; } }
+
+  .rule { background: var(--panel); border: 1px solid var(--line); border-radius: 20px; padding: 26px; text-align: center; box-shadow: var(--shadow); }
+  .rule p { margin: 0; font-size: clamp(20px, 3vw, 26px); line-height: 1.5; }
+
+  footer { margin-top: 48px; text-align: center; font-size: 14px; color: var(--muted); }
   footer a { color: inherit; }
-  @media (max-width: 760px) {
-    .row, .cols { grid-template-columns: 1fr; }
-    .stats { grid-template-columns: repeat(2, 1fr); }
-    .stat:nth-child(2) { border-right: 0; }
-    .stat:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+  footer details { margin-top: 10px; }
+  footer summary { cursor: pointer; }
+  footer input { margin-top: 8px; width: 100%; max-width: 380px; font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  @media (max-width: 680px) {
+    main { padding-top: 36px; }
+    .who, .pair { grid-template-columns: 1fr; }
+    .ask { flex-direction: column; }
   }
 </style>
 </head>
 <body>
 <main>
-  <h1><span class="j">Jev</span> vs <span class="l">LLM</span></h1>
-  <p class="lede">
-    Most "AI" in production isn't chat. It's a decision: route this ticket, approve this tool call, flag this review.
-    Send the same input and the same typed questions to <b>Jev</b> (TypeSafe's System One model) and to a general LLM,
-    and see which one your code would rather depend on.
-  </p>
+  <header>
+    <h1 class="serif">Two kinds of AI</h1>
+    <p class="sub">One is a <b class="j">sorter</b>. One is a <b class="l">writer</b>.</p>
+  </header>
 
-  <section class="panel">
-    <label for="scenario">Scenario</label>
-    <select id="scenario"></select>
-    <div style="margin-top:14px">
-      <label for="state">Input (state)</label>
-      <textarea id="state" rows="4"></textarea>
+  <section class="who">
+    <div>
+      <div class="big">🗂️</div>
+      <h2 class="serif j">Jev is a sorter</h2>
+      <p>You give it a thing and a few boxes. It puts the thing in the right box, really fast, and tells you how sure it is.</p>
     </div>
-    <details class="q" id="keybox">
-      <summary>Use your own AI Gateway key (optional)</summary>
-      <input id="key" type="password" autocomplete="off" placeholder="vck_..." style="margin-top:8px" />
-      <div class="note">Get one free at vercel.com → AI Gateway → API Keys. It's kept in this tab only and sent
-        with each request to be forwarded to Vercel. The server never stores or logs it.</div>
-    </details>
-    <details class="q">
-      <summary>Questions (editable JSON)</summary>
-      <textarea id="questions" rows="14" style="margin-top:8px"></textarea>
-    </details>
-    <div class="row">
-      <div>
-        <label for="model">Compare against</label>
-        <select id="model">
-          <option>anthropic/claude-haiku-4.5</option>
-          <option>openai/gpt-5-mini</option>
-          <option>google/gemini-2.5-flash-lite</option>
-          <option>meta/llama-3.1-8b</option>
-        </select>
-      </div>
-      <div>
-        <label for="runs">Runs (tests consistency)</label>
-        <select id="runs"><option value="1">1 run</option><option value="5" selected>5 runs</option></select>
-      </div>
-      <div></div>
-      <button id="go">Run both</button>
+    <div>
+      <div class="big">✍️</div>
+      <h2 class="serif l">An LLM is a writer</h2>
+      <p>You ask it for something and it writes brand-new words for you, like a story, a poem, or an answer.</p>
     </div>
   </section>
 
-  <div class="banner" id="banner" aria-live="polite"></div>
-  <div class="cols" id="results"></div>
+  <section class="job">
+    <h2 class="serif">🗂️ Sorting: Jev's best job</h2>
+    <p class="what">Which box does this message go in?
+      <span class="boxes"><span>😊 happy</span><span>😢 sad</span><span>😠 angry</span></span></p>
+    <div class="chips" id="sortChips"></div>
+    <div class="ask">
+      <input id="sortInput" aria-label="Message to sort" />
+      <button class="go" id="sortGo">Sort it</button>
+    </div>
+    <div class="result" id="sortOut" aria-live="polite"></div>
+  </section>
+
+  <section class="job">
+    <h2 class="serif">✍️ Writing: the LLM's best job</h2>
+    <p class="what">Ask for something new to be written.</p>
+    <div class="chips" id="writeChips"></div>
+    <div class="ask">
+      <input id="writeInput" aria-label="What to write" />
+      <button class="go" id="writeGo">Write it</button>
+    </div>
+    <div class="result" id="writeOut" aria-live="polite"></div>
+  </section>
+
+  <section class="rule">
+    <p>Need to <b class="j">pick</b> something? Use <b class="j">Jev</b>.<br />
+      Need <b class="l">new words</b>? Use an <b class="l">LLM</b>.</p>
+  </section>
 
   <footer>
-    Both models are called through Vercel AI Gateway with the same key. Latency is wall-clock from the server, median across runs.
-    Cost uses gateway-reported cost when present, otherwise public per-token pricing.
-    <a href="https://github.com/venkateswarisudalai/jev-vs-llm">Source on GitHub</a>
+    The LLM here is Claude Haiku 4.5. Both run through Vercel AI Gateway.
+    · <a href="https://github.com/venkateswarisudalai/jev-vs-llm">Source on GitHub</a>
+    <details>
+      <summary>Use your own API key</summary>
+      <input id="key" type="password" autocomplete="off" placeholder="vck_..." aria-label="AI Gateway key" />
+      <div>It stays in this tab and is only passed through to Vercel.</div>
+    </details>
   </footer>
 </main>
 
 <script type="module">
-import { SCENARIOS } from './lib/scenarios.js';
+import { SORT, WRITE } from './lib/examples.js';
 
+const LLM = 'anthropic/claude-haiku-4.5';
+const EMOJI = { happy: '😊', sad: '😢', angry: '😠' };
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-
-for (const [key, s] of Object.entries(SCENARIOS)) $('scenario').add(new Option(s.label, key));
-function load(key) {
-  const s = SCENARIOS[key];
-  $('state').value = typeof s.state === 'string' ? s.state : JSON.stringify(s.state, null, 2);
-  $('questions').value = JSON.stringify(s.questions, null, 2);
-  $('results').innerHTML = ''; $('banner').textContent = '';
-}
-$('scenario').onchange = (e) => load(e.target.value);
-load('support');
-
-function readState() {
-  const raw = $('state').value.trim();
-  try { const v = JSON.parse(raw); if (v && typeof v === 'object') return v; } catch {}
-  return raw;
-}
-
-const fmtMs = (ms) => (ms == null ? '–' : ms >= 1000 ? `${(ms / 1000).toFixed(2)}s` : `${Math.round(ms)}ms`);
-const fmtUsd = (c) => (c == null ? '–' : c === 0 ? '$0' : c < 0.0001 ? `$${c.toExponential(1)}` : `$${c.toFixed(5)}`);
+const secs = (ms) => `${(ms / 1000).toFixed(ms < 1000 ? 2 : 1)} seconds`;
 const pct = (p) => `${Math.round(p * 100)}%`;
+const LOADING = '<p class="loading"><span class="dot"></span><span class="dot"></span><span class="dot"></span></p>';
 
-function label(q, v) {
-  if (v === undefined) return null;
-  if (q.type === 'noul') return v ? 'yes' : 'no';
-  if (q.type === 'score') return `${v} · ${q.criteria[v]}`;
-  return v;
+function chips(el, input, list) {
+  el.innerHTML = list.map((t, i) => `<button class="chip" data-i="${i}" aria-pressed="${i === 0}">${esc(t)}</button>`).join('');
+  input.value = list[0];
+  el.onclick = (e) => {
+    const b = e.target.closest('.chip');
+    if (!b) return;
+    for (const c of el.children) c.setAttribute('aria-pressed', c === b);
+    input.value = list[b.dataset.i];
+  };
+  input.oninput = () => { for (const c of el.children) c.setAttribute('aria-pressed', 'false'); };
 }
-
-function jevDetail(q, a) {
-  if (!a) return '';
-  let probs;
-  if (q.type === 'noul') probs = { yes: a.noul, no: 1 - a.noul };
-  else if (q.type === 'choice') probs = a.probabilities ?? {};
-  else probs = Object.fromEntries(Object.entries(a.probabilities ?? {}).map(([k, p]) => [q.criteria[k] ?? k, p]));
-  const bars = Object.entries(probs).map(([k, p]) => `
-    <div class="bar"><span class="name">${esc(k)}</span><span class="track"><span class="fill" style="width:${pct(p)}"></span></span><span class="pct">${pct(p)}</span></div>`).join('');
-  const extra = q.type === 'score' ? `expected score ${a.score.toFixed(2)}` : a.confidence != null ? `confidence ${pct(a.confidence)}` : '';
-  return `<div class="bars">${bars}</div>${extra ? `<div class="note">${extra}</div>` : ''}`;
-}
-
-function card(kind, side, questions, runs) {
-  const first = side.runs[0];
-  const errRuns = side.schemaErrorRuns;
-  const agreeVals = Object.values(side.agreement);
-  const stable = agreeVals.length ? Math.min(...agreeVals) : null;
-  const answers = Object.entries(questions).map(([id, q]) => {
-    const v = first?.answers?.[id];
-    const shown = label(q, v);
-    const agree = side.agreement[id];
-    const agreeNote = runs > 1 && agree != null ? `<div class="note">${pct(agree)} of runs agreed</div>` : '';
-    const detail = kind === 'jev' ? jevDetail(q, first?.raw?.[id]) : shown != null ? '<div class="note">single label, no probabilities</div>' : '';
-    return `<div class="ans"><div class="id">${esc(id)}</div>
-      <div class="val ${shown == null ? 'bad' : ''}">${shown == null ? 'no valid answer' : esc(shown)}</div>${detail}${agreeNote}</div>`;
-  }).join('');
-  const errs = [...new Set([...side.failures, ...side.runs.flatMap((r) => r.errors)])];
-  const raw = kind === 'jev' ? JSON.stringify(first?.raw, null, 2) : first?.raw;
-  return `<article class="card ${kind}">
-    <h2>${kind === 'jev' ? 'Jev' : 'LLM'} <small>${esc(side.model)}</small></h2>
-    <div class="stats">
-      <div class="stat"><b>${fmtMs(side.medianLatencyMs)}</b><span>latency</span></div>
-      <div class="stat"><b>${fmtUsd(side.avgCostUsd)}</b><span>cost / call</span></div>
-      <div class="stat ${errRuns ? 'bad' : ''}"><b>${errRuns}/${side.runs.length}</b><span>schema errors</span></div>
-      <div class="stat ${stable != null && stable < 1 ? 'bad' : ''}"><b>${stable == null || runs === 1 ? '–' : pct(stable)}</b><span>consistency</span></div>
-    </div>
-    ${errs.length ? `<div class="errs">${errs.map(esc).join('<br>')}</div>` : ''}
-    <div class="answers">${answers}</div>
-    <details class="raw"><summary>Raw output (run 1)</summary><pre>${esc(raw ?? '')}</pre></details>
-  </article>`;
-}
-
-function banner(r) {
-  const { jev, llm } = r;
-  const parts = [];
-  if (jev.medianLatencyMs && llm.medianLatencyMs) {
-    const x = llm.medianLatencyMs / jev.medianLatencyMs;
-    parts.push(x >= 1 ? `Jev was ${x.toFixed(1)}× faster` : `LLM was ${(1 / x).toFixed(1)}× faster`);
-  }
-  if (jev.avgCostUsd && llm.avgCostUsd) {
-    const x = llm.avgCostUsd / jev.avgCostUsd;
-    parts.push(x >= 1 ? `${x.toFixed(0)}× cheaper` : `${(1 / x).toFixed(1)}× more expensive`);
-  }
-  if (llm.schemaErrorRuns) parts.push(`the LLM broke the schema in ${llm.schemaErrorRuns} of ${llm.runs.length} runs`);
-  return parts.join(', ') + (parts.length ? '.' : '');
-}
+chips($('sortChips'), $('sortInput'), SORT.examples);
+chips($('writeChips'), $('writeInput'), WRITE.examples);
 
 try { $('key').value = sessionStorage.getItem('gatewayKey') ?? ''; } catch {}
 $('key').oninput = () => { try { sessionStorage.setItem('gatewayKey', $('key').value.trim()); } catch {} };
 
-$('go').onclick = async () => {
-  let questions;
-  try { questions = JSON.parse($('questions').value); }
-  catch { $('banner').innerHTML = '<span class="err">Questions JSON is invalid.</span>'; return; }
-  const runs = Number($('runs').value);
-  $('go').disabled = true; $('go').textContent = 'Running…';
-  $('banner').textContent = ''; $('results').innerHTML = '';
-  try {
-    const res = await fetch('/api/compare', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...($('key').value.trim() && { 'x-gateway-key': $('key').value.trim() }) },
-      body: JSON.stringify({ state: readState(), questions, llmModel: $('model').value, runs }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
-    $('banner').textContent = banner(data);
-    $('results').innerHTML = card('jev', data.jev, questions, data.runs) + card('llm', data.llm, questions, data.runs);
-  } catch (err) {
-    $('banner').innerHTML = `<span class="err">${esc(err.message)}</span>`;
-  } finally {
-    $('go').disabled = false; $('go').textContent = 'Run both';
+async function call(body) {
+  const key = $('key').value.trim();
+  const res = await fetch('/api/compare', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...(key && { 'x-gateway-key': key }) },
+    body: JSON.stringify({ llmModel: LLM, ...body }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error ?? `HTTP ${res.status}`);
+  return data;
+}
+
+function errorBox(msg) {
+  const linked = esc(msg).replace(/(https:\/\/\S+?)(\.?\s|\.?$)/g, '<a href="$1" target="_blank" rel="noopener">this link</a>$2');
+  return `<div class="error">${linked}</div>`;
+}
+
+async function run(button, out, work) {
+  button.disabled = true;
+  out.innerHTML = LOADING;
+  try { out.innerHTML = await work(); }
+  catch (err) { out.innerHTML = errorBox(err.message); }
+  finally { button.disabled = false; }
+}
+
+$('sortGo').onclick = () => run($('sortGo'), $('sortOut'), async () => {
+  const text = $('sortInput').value.trim();
+  if (!text) return errorBox('Type a message first.');
+  const { jev, llm } = await call({ state: text, questions: SORT.question, runs: 1 });
+  const j = jev.runs[0], l = llm.runs[0];
+  if (!j && !l) throw new Error(jev.failures[0] ?? llm.failures[0] ?? 'Something went wrong.');
+
+  const jMood = j?.answers.mood, lMood = l?.answers.mood;
+  const jevFaster = !j || !l || j.latencyMs <= l.latencyMs;
+  const [jIcon, lIcon] = jevFaster ? ['⚡', '🐢'] : ['🐢', '⚡'];
+  const probs = Object.entries(j?.raw?.mood?.probabilities ?? {}).sort((a, b) => b[1] - a[1]);
+  const bars = probs.map(([k, p]) =>
+    `<div class="bar"><span>${EMOJI[k] ?? ''} ${esc(k)}</span><span class="t"><i style="width:${pct(p)}"></i></span><span class="p">${pct(p)}</span></div>`).join('');
+
+  const jevCard = j
+    ? `<div class="card jev"><div class="name">Jev <span>${jIcon} ${secs(j.latencyMs)}</span></div>
+        <div class="answer serif">${EMOJI[jMood] ?? ''} ${esc(jMood)}</div>
+        <div class="bars">${bars}</div>
+        <div class="note">It shows how sure it is about every box.</div></div>`
+    : `<div class="card jev">${errorBox(jev.failures[0])}</div>`;
+  const llmCard = l
+    ? `<div class="card llm"><div class="name">LLM <span>${lIcon} ${secs(l.latencyMs)}</span></div>
+        <div class="answer serif">${lMood ? `${EMOJI[lMood] ?? ''} ${esc(lMood)}` : '🤷 mixed up'}</div>
+        <div class="note">${lMood ? "It picks a box but can't say how sure it is." : `It didn't answer the way we asked: ${esc(l.errors.join(', '))}`}</div></div>`
+    : `<div class="card llm">${errorBox(llm.failures[0])}</div>`;
+
+  let say = '';
+  if (j && l) {
+    const x = l.latencyMs / j.latencyMs;
+    const speed = x >= 1.2 ? ` Jev was <b class="j">${x.toFixed(0)}× faster</b>.` : '';
+    say = jMood === lMood ? `Both said <b>${esc(jMood)}</b>.${speed}` : `They picked different boxes.${speed}`;
   }
-};
+  return `<div class="pair">${jevCard}${llmCard}</div>${say ? `<p class="takeaway serif">${say}</p>` : ''}`;
+});
+
+$('writeGo').onclick = () => run($('writeGo'), $('writeOut'), async () => {
+  const prompt = $('writeInput').value.trim();
+  if (!prompt) return errorBox('Type what you want written first.');
+  const r = await call({ mode: 'write', prompt });
+  return `<div class="pair">
+    <div class="card llm"><div class="name">LLM <span>${secs(r.latencyMs)}</span></div>
+      <div class="text">${esc(r.text)}</div></div>
+    <div class="card cant"><div class="name" style="color:var(--jev)">Jev</div>
+      <div class="answer serif">🙅 Can't do this</div>
+      <div class="note">Jev only puts things into boxes. It never writes new words.</div></div>
+  </div>
+  <p class="takeaway serif">Writing is the <b class="l">LLM's</b> job.</p>`;
+});
 </script>
 </body>
 </html>

@@ -2,19 +2,16 @@
 
 **Live demo: https://jev-vs-llm.vercel.app**
 
-A small side-by-side demo. Send the same input and typed questions to
-[Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) (TypeSafe AI's System One
-decision model) and to a general-purpose LLM. Then compare what production code cares about:
+Two kinds of AI, each shown doing the job it's best at:
 
-| | Jev | LLM |
-|---|---|---|
-| Output | Typed answers (`choice`, `score`, `noul`) with probabilities | Text you ask to be JSON and then parse |
-| Schema errors | Not possible, answers are constrained to your criteria | Counted per run: bad JSON, code fences, invented labels, missing keys |
-| Consistency | Measured across N runs | Measured across N runs |
-| Latency / cost | Median wall-clock, gateway-reported cost | Same |
+- **Jev is a sorter.** Give it a message and some boxes (happy / sad / angry) and it picks the
+  right box fast, with a "how sure" percentage for every box.
+  [Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev) is TypeSafe AI's
+  System One decision model.
+- **An LLM is a writer.** Ask for a poem or a bedtime story and it writes new words. Jev can't
+  do that.
 
-Three built-in scenarios: support-ticket triage, AI-agent tool-call approval, and product-review
-moderation. You can edit the input and the question JSON to try your own.
+The sorting demo sends the same message to both, so you can compare their answers and speed.
 
 ## How it works
 
@@ -45,8 +42,8 @@ You need Node 20+ and a Vercel AI Gateway key. There's nothing to `npm install`.
    ```bash
    npm run dev                 # open http://localhost:3000
    ```
-4. **Play:** pick a scenario, pick an LLM, choose 5 runs, and click **Run both**. Then change the
-   input text, or open **Questions** and write your own. Each question is one of:
+4. **Play:** type any message into the sorting box, or anything you want written into the
+   writing box. To sort into different boxes, edit `lib/examples.js`. Each question is one of:
    ```json
    {
      "urgent":     { "type": "noul",   "instructions": "Does this need a reply today?" },

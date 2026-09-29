@@ -7,7 +7,7 @@ import { POST } from './api/compare.js';
 const ROOT = new URL('.', import.meta.url).pathname;
 const PORT = Number(process.env.PORT ?? 3000);
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml' };
-const PUBLIC = new Set(['/index.html', '/lib/scenarios.js']);
+const PUBLIC = new Set(['/index.html', '/lib/examples.js']);
 
 createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);

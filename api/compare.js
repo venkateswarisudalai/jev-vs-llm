@@ -1,4 +1,4 @@
-import { compare, validateRequest } from '../lib/compare.js';
+import { compare, validateRequest, write } from '../lib/compare.js';
 
 // Best-effort per-instance rate limit so a public demo key isn't drained.
 const WINDOW_MS = 10 * 60 * 1000;
@@ -37,6 +37,9 @@ export async function POST(request) {
   if (problem) return json({ error: problem }, 400);
 
   try {
+    if (body.mode === 'write') {
+      return json(await write({ prompt: body.prompt, model: body.llmModel, apiKey }));
+    }
     return json(await compare({ ...body, apiKey }));
   } catch (err) {
     return json({ error: err.message }, 502);

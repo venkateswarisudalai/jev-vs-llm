@@ -9,10 +9,23 @@ import {
   tokenCost,
   validateLlmOutput,
   validateRequest,
+  write,
 } from '../lib/compare.js';
-import { SCENARIOS } from '../lib/scenarios.js';
+import { SORT } from '../lib/examples.js';
 
-const { questions } = SCENARIOS.support;
+const questions = {
+  department: {
+    type: 'choice',
+    instructions: 'Which team should handle this ticket?',
+    criteria: { billing: 'Charges', account: 'Sign-in', technical: 'Bugs', sales: 'Pricing' },
+  },
+  urgent: { type: 'noul', instructions: 'Does this need a response today?' },
+  frustration: {
+    type: 'score',
+    instructions: 'How frustrated is the customer?',
+    criteria: ['Calm', 'Mildly annoyed', 'Frustrated', 'Very angry'],
+  },
+};
 
 test('buildLlmPrompt lists every question with its allowed values', () => {
   const p = buildLlmPrompt('hello', questions);
@@ -132,4 +145,31 @@ test('compare clamps runs and reports upstream failures', async () => {
   assert.equal(r.jev.failures.length, 5);
   assert.equal(r.llm.failures[0], 'bad key');
   assert.equal(r.llm.medianLatencyMs, null);
+});
+
+test('the page\'s sort example is a valid request', () => {
+  const body = { state: SORT.examples[0], questions: SORT.question, llmModel: 'anthropic/claude-haiku-4.5' };
+  assert.equal(validateRequest(body), null);
+});
+
+test('write mode validates its prompt', () => {
+  const ok = { mode: 'write', prompt: 'a poem', llmModel: 'anthropic/claude-haiku-4.5' };
+  assert.equal(validateRequest(ok), null);
+  assert.equal(validateRequest({ ...ok, prompt: '' }), 'prompt is required');
+  assert.match(validateRequest({ ...ok, prompt: 'x'.repeat(1001) }), /too long/);
+  assert.match(validateRequest({ ...ok, llmModel: 'nope' }), /llmModel must be/);
+});
+
+test('write returns the LLM text, latency and cost', async () => {
+  const fakeFetch = async (url) => ({
+    ok: true,
+    json: async () =>
+      url.endsWith('/v1/models')
+        ? { data: [{ id: 'anthropic/claude-haiku-4.5', pricing: { input: '0.000001', output: '0.000005' } }] }
+        : { choices: [{ message: { content: 'A puppy!' } }], usage: { prompt_tokens: 10, completion_tokens: 10 } },
+  });
+  const r = await write({ prompt: 'poem', model: 'anthropic/claude-haiku-4.5', apiKey: 'k', fetchImpl: fakeFetch });
+  assert.equal(r.text, 'A puppy!');
+  assert.ok(r.latencyMs >= 0);
+  assert.ok(Math.abs(r.costUsd - 0.00006) < 1e-12);
 });
